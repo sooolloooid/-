@@ -1,0 +1,146 @@
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram import ParseMode
+
+# Токен вашего бота
+TOKEN = "7043016541:AAEgW7YIFWooOxBvv1MPCAYjtB5gYGUl7JE"
+
+# Хранилище данных пользователей
+user_data = {}
+
+# Функция старт
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    if user_id not in user_data:
+        user_data[user_id] = {
+            "level": 1,
+            "xp": 0,
+            "gold": 100,
+            "inventory": [],
+            "health": 100,
+            "energy": 100,
+            "skills": {},
+        }
+    await show_menu(update)
+
+# Функция отображения меню
+async def show_menu(update: Update) -> None:
+    keyboard = [
+        [InlineKeyboardButton("Бой", callback_data="fight")],
+        [InlineKeyboardButton("Профиль", callback_data="profile")],
+        [InlineKeyboardButton("Инвентарь", callback_data="inventory")],
+        [InlineKeyboardButton("Магазин", callback_data="shop")],
+        [InlineKeyboardButton("Тренировка", callback_data="train")],
+        [InlineKeyboardButton("Миссии", callback_data="missions")],
+        [InlineKeyboardButton("Рейтинг", callback_data="ranking")],
+        [InlineKeyboardButton("Настройки", callback_data="settings")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "Добро пожаловать в игру! Выберите действие:", reply_markup=reply_markup
+    )
+
+# Функция обработки кнопок
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    user_id = query.from_user.id
+    await query.answer()
+
+    if query.data == "fight":
+        await fight(query, user_id)
+    elif query.data == "profile":
+        await profile(query, user_id)
+    elif query.data == "inventory":
+        await inventory(query, user_id)
+    elif query.data == "shop":
+        await shop(query, user_id)
+    elif query.data == "train":
+        await train(query, user_id)
+    elif query.data == "missions":
+        await missions(query, user_id)
+    elif query.data == "ranking":
+        await ranking(query, user_id)
+    elif query.data == "settings":
+        await settings(query, user_id)
+
+# 1. Бой
+async def fight(query, user_id):
+    user = user_data[user_id]
+    user["health"] -= 10
+    user["xp"] += 50
+    user["gold"] += 20
+    await query.edit_message_text(
+        f"*Вы сразились!* 🎯\n\n"
+        f"Вы получили: 50 опыта и 20 золота! 💰\n"
+        f"Ваше здоровье: {user['health']} ❤\n"
+    )
+    await show_menu(query)
+
+# 2. Профиль
+async def profile(query, user_id):
+    user = user_data[user_id]
+    await query.edit_message_text(
+        f"*Ваш профиль* 📝\n\n"
+        f"Уровень: {user['level']} 🔼\n"
+        f"Опыт: {user['xp']} 🌟\n"
+        f"Золото: {user['gold']} 💰\n"
+        f"Здоровье: {user['health']} ❤\n"
+        f"Энергия: {user['energy']} ⚡\n"
+    )
+    await show_menu(query)
+
+# 3. Инвентарь
+async def inventory(query, user_id):
+    user = user_data[user_id]
+    inventory = ", ".join(user["inventory"]) if user["inventory"] else "Ваш инвентарь пуст."
+    await query.edit_message_text(f"*Ваш инвентарь* 🎒\n\n{inventory}")
+    await show_menu(query)
+
+# 4. Магазин
+async def shop(query, user_id):
+    await query.edit_message_text(
+        "*Магазин* 🏪\n\nПока что магазин пуст. Но в будущем здесь появятся предметы для покупки."
+    )
+    await show_menu(query)
+
+# 5. Тренировка
+async def train(query, user_id):
+    user = user_data[user_id]
+    user["xp"] += 30
+    await query.edit_message_text(
+        "*Тренировка* 💪\n\nВы потренировались и получили 30 опыта!"
+    )
+    await show_menu(query)
+
+# 6. Миссии
+async def missions(query, user_id):
+    await query.edit_message_text(
+        "*Миссии* 📜\n\nМиссии пока недоступны. Ожидайте обновлений!"
+    )
+    await show_menu(query)
+
+    # 7. Рейтинг
+    async def ranking(query, user_id):
+        await query.edit_message_text(
+            "*Рейтинг* 🏆\n\nРейтинг игроков ещё в разработке. Следите за новостями!"
+        )
+        await show_menu(query)
+
+    # 8. Настройки
+    async def settings(query, user_id):
+        await query.edit_message_text(
+            "*Настройки* ⚙️\n\nНастройки: здесь в будущем можно будет менять параметры игры."
+        )
+        await show_menu(query)
+
+    # Основная функция запуска бота
+    def main() -> None:
+        application = Application.builder().token(TOKEN).build()
+
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CallbackQueryHandler(button))
+
+        application.run_polling()
+
+    if name == "main":
+        main()
